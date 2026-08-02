@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>Relationship Health Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE (Gunakan CSS yang sama seperti sebelumnya, dipersingkat agar muat) ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --pink-50: #fdf2f8; --pink-100: #fce7f3; --pink-200: #fbcfe8; --pink-300: #f9a8d4;
+      --pink-400: #f472b6; --pink-500: #ec4899; --pink-600: #db2777;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+      --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
+      --red-400: #f87171; --red-500: #ef4444; --red-50: #fef2f2; --red-600: #dc2626;
+    }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fdf2f8 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-x: hidden; }
+    .floating-hearts { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+    .floating-heart { position: absolute; animation: floatUp linear infinite; opacity: 0.5; }
+    @keyframes floatUp { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
+    .main-card { max-width: 40rem; width: 100%; background: white; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); overflow: hidden; position: relative; min-height: 620px; z-index: 10; }
+    .screen { display: none !important; width: 100%; min-height: 620px; }
+    .screen.active { display: flex !important; flex-direction: column; animation: slideIn 0.4s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(60px) rotate(2deg); } to { opacity: 1; transform: translateX(0) rotate(0deg); } }
+    @keyframes slideInDown { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    
+    /* Sisanya sama dengan CSS asli */
+    .opening-screen { align-items: center; justify-content: center; text-align: center; padding: 2rem; animation: slideInDown 0.5s ease; }
+    .opening-heart { font-size: 3.5rem; margin-bottom: 1.5rem; animation: bounce 2.5s ease-in-out infinite; }
+    .opening-title { font-size: 1.5rem; font-weight: 700; color: var(--pink-600); margin-bottom: 0.75rem; line-height: 1.3; }
+    .opening-desc { font-size: 0.875rem; color: var(--gray-500); line-height: 1.7; max-width: 20rem; margin-bottom: 1.5rem; }
+    .name-input { width: 100%; max-width: 20rem; background: white; border: 2px solid var(--pink-200); border-radius: 0.75rem; padding: 0.75rem 1rem; font-size: 0.875rem; font-family: 'Poppins', sans-serif; text-align: center; outline: none; transition: all 0.2s; margin-bottom: 1rem; }
+    .name-input:focus { border-color: var(--pink-400); box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.3); }
+    .error-text { font-size: 0.75rem; color: var(--red-400); margin-top: 0.5rem; }
+    .btn-primary { width: 100%; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.3); transition: all 0.15s ease; border: none; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 1rem; }
+    .btn-primary.enabled { background: var(--pink-500); color: white; }
+    .btn-primary.disabled { background: var(--pink-300); color: white; cursor: not-allowed; }
+    
+    .card-container { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; }
+    .progress-bar { width: 100%; max-width: 20rem; margin-bottom: 1.25rem; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--pink-400); font-weight: 600; margin-bottom: 0.25rem; }
+    .progress-track { height: 0.5rem; width: 100%; background: var(--pink-100); border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #f472b6, #ec4899); transition: width 0.5s ease-out; }
+    .flash-card { width: 100%; max-width: 20rem; background: linear-gradient(135deg, white 0%, var(--pink-50) 100%); border: 2px solid var(--pink-200); border-radius: 1rem; padding: 1.25rem; text-align: center; }
+    .gif-container { margin-bottom: 1rem; border-radius: 0.75rem; overflow: hidden; background: var(--pink-50); }
+    .gif-container img { width: 100%; max-height: 180px; object-fit: contain; display: block; margin: 0 auto;}
+    .card-title { font-size: 1.125rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.25rem; }
+    .card-subtitle { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 1rem; }
+    .essay-question { font-size: 0.875rem; font-weight: 500; color: var(--gray-700); text-align: left; margin-bottom: 1rem; }
+    .star-rating { display: flex; justify-content: center; gap: 0.25rem; margin-bottom: 1.25rem; }
+    .star-btn { font-size: 2rem; background: none; border: none; cursor: pointer; padding: 0.25rem; filter: grayscale(0); }
+    .star-btn.empty { filter: grayscale(1); opacity: 0.5; }
+    .essay-textarea { width: 100%; background: white; border: 2px solid var(--pink-200); border-radius: 0.75rem; padding: 0.75rem; font-size: 0.875rem; font-family: 'Poppins', sans-serif; resize: none; outline: none; margin-bottom: 1rem; }
+    
+    .result-screen { padding: 1.5rem; animation: slideInDown 0.5s ease; }
+    .result-header { text-align: center; margin-bottom: 1.5rem; }
+    .result-icon { font-size: 3rem; margin-bottom: 1rem; animation: bounce 2.5s infinite; }
+    .result-title { font-size: 1.5rem; font-weight: 700; color: var(--pink-600); margin-bottom: 0.5rem; }
+    .result-subtitle { font-size: 0.75rem; color: var(--gray-500); }
+    .result-content { background: var(--pink-50); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid var(--pink-100); max-height: 55vh; overflow-y: auto; }
+    .result-section-title { font-weight: 700; font-size: 0.875rem; color: var(--pink-500); margin-bottom: 0.75rem; border-bottom: 1px solid var(--pink-200); padding-bottom: 0.5rem; }
+    .rating-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin-bottom: 1.5rem; }
+    .rating-item { font-size: 0.75rem; color: var(--gray-600); } .rating-item .score { font-weight: 700; color: var(--pink-600); }
+    .essay-result { margin-bottom: 1rem; }
+    .essay-result-label { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.25rem; }
+    .essay-result-text { font-weight: 500; background: white; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--gray-100); text-align: left; font-size: 0.875rem; color: var(--gray-700); }
+    
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: var(--gray-800); color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-size: 0.875rem; z-index: 100; animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards; white-space: nowrap; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+  </style>
+</head>
+<body>
+
+<!-- Floating Hearts Background -->
+<div class="floating-hearts" id="floatingHearts"></div>
+
+<!-- Main Card -->
+<div class="main-card" id="mainCard">
+
+  <!-- ===== OPENING SCREEN ===== -->
+  <div class="screen active opening-screen" id="screen-opening">
+    <div class="opening-heart">💖</div>
+    <h1 class="opening-title">Relationship<br>Health Check</h1>
+    <p class="opening-desc">
+      Yuk, kita ukur bareng-bareng <b>quality</b> hubungan kita sekarang! Anggap aja ini mini-games santai buat ngecek ombak perasaan kamu.<br><br>
+      Nggak ada jawaban yang salah kok, yang penting 100% jujur yaa! 👀✨
+    </p>
+
+    <input type="text" id="nameInput" class="name-input" placeholder="Tulis nama kamu di sini... 💝" maxlength="128">
+    <p class="error-text" id="nameError" style="display:none;">Nama harus diisi dulu ya! ✍️</p>
+    <button class="btn-primary disabled" id="btnStart" disabled>Mulai Check-Up! 🚀</button>
+  </div>
+
+  <!-- ===== RATING SCREEN ===== -->
+  <div class="screen card-container" id="screen-rating">
+    <div class="progress-bar">
+      <div class="progress-label">
+        <span id="ratingLabel">Pertanyaan 1 dari 12</span>
+        <span id="ratingPct">8%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="ratingProgressFill" style="width: 8%"></div></div>
+    </div>
+    <div class="flash-card" id="ratingCard">
+      <div class="gif-container"><img id="ratingGif" src="" alt="feeling"></div>
+      <h3 class="card-title" id="ratingFeeling">Rasa aman</h3>
+      <p class="card-subtitle">Seberapa besar rasa ini muncul pas kamu sama aku?</p>
+      <div class="star-rating" id="starRating"></div>
+      <button class="btn-primary disabled" id="btnRatingNext" disabled>Lanjut</button>
+    </div>
+  </div>
+
+  <!-- ===== ESSAY SCREEN ===== -->
+  <div class="screen card-container" id="screen-essay">
+    <div class="progress-bar">
+      <div class="progress-label">
+        <span id="essayLabel">Essay 1 dari 4</span>
+        <span id="essayPct">25%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="essayProgressFill" style="width: 25%"></div></div>
+    </div>
+    <div class="flash-card" id="essayCard">
+      <div class="gif-container"><img id="essayGif" src="" alt="gif"></div>
+      <p class="essay-question" id="essayQuestion"></p>
+      <textarea id="essayTextarea" class="essay-textarea" rows="4" placeholder="Tulis jawabanmu di sini... ✍️"></textarea>
+      <button class="btn-primary disabled" id="btnEssayNext" disabled>Lanjut</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULT SCREEN ===== -->
+  <div class="screen result-screen" id="screen-result">
+    <div class="result-header">
+      <div class="result-icon">💌</div>
+      <h2 class="result-title">Hasil Check-Up Kamu!</h2>
+      <p class="result-subtitle">Terima kasih ya sayang udah jawab jujur 🥰 Ini rangkuman perasaan dan harapan kamu.</p>
+    </div>
+    <div class="result-content" id="resultContent"></div>
+    <div class="result-footer">
+      <p>Jawaban kamu sudah otomatis tersimpan dengan aman ✨</p>
+    </div>
+  </div>
+
+</div>
+<div id="toastContainer"></div>
+
+<script>
+// ==========================================
+// PASTE URL DARI GOOGLE APPS SCRIPT DI SINI!
+// ==========================================
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzGezfYeS3OYZoVTPvgGhbDbEjspXgK0o812cOFIhIpwGid6yO3aYv2EfZos5HsCWo8/exec"; 
+
+const feelings = [ "Rasa aman", "Rasa nyaman", "Rasa takut", "Rasa capek", "Rasa sedih", "Rasa bahagia", "Rasa bangga", "Rasa sayang", "Rasa kecewa", "Rasa benci", "Rasa tenang", "Rasa marah"];
+const ratingGifs = {
+  "Rasa aman": "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2RheWRhbzA0OHB0amFrbWZpb2I1c2cwa2FycGxlN3NoMzZldm9pMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/KmxmoHUGPDjfQXqGgv/200.gif",
+  "Rasa nyaman": "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2RheWRhbzA0OHB0amFrbWZpb2I1c2cwa2FycGxlN3NoMzZldm9pMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/AjK2RWqmT0INY3rvqQ/giphy.gif",
+  "Rasa takut": "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzU5YXg3M3ltaW5yMmJ6Y3JhMXhvMWIxc2Nwcm1iMjU4dnM4cXBnZiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MpNy5P7x5vWM0/200.gif",
+  "Rasa capek": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnFqcjBtNHB2eWYwdXlwM2FmdHo2MnYyYmE4ejFvZmV5ZXJ0a29jMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/nURzWHsOTpDDa/200.gif",
+  "Rasa sedih": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjAza3FmeG4ydXV1c2NldDA1dmJmbWZlcWdtZ29td2R3MzFiODQ4dSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/RvO4oyf6Hhvek3n80W/giphy.gif",
+  "Rasa bahagia": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXcwNWtjcGZvNHdzeXRuaWhlMWY4cmt4NjN0NnAxdmkwcXhhYmYxayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/EVQoEjinZSZfG/200.gif",
+  "Rasa bangga": "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXcwNWtjcGZvNHdzeXRuaWhlMWY4cmt4NjN0NnAxdmkwcXhhYmYxayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/21L1fiMpUyk9p0QlC0/200.gif",
+  "Rasa sayang": "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWE5czZ5cWRsYWg5Z2wwN2t0dWI3OXg1Z3Frd2VxaHJoaTN3enExaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/1JmGiBtqTuehfYxuy9/200.gif",
+  "Rasa kecewa": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjAza3FmeG4ydXV1c2NldDA1dmJmbWZlcWdtZ29td2R3MzFiODQ4dSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/uVdJkHxTv0voGJ9wZL/giphy.gif",
+  "Rasa benci": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdWl3d2VoN3lvNG5nZGNqeHEzeWxnNjByZDBxdnNxYXhuM29oeWljdyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/VcF2XV5YXuzw44fr0R/giphy.gif",
+  "Rasa tenang": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnFqcjBtNHB2eWYwdXlwM2FmdHo2MnYyYmE4ejFvZmV5ZXJ0a29jMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/cuPm4p4pClZVC/200.gif",
+  "Rasa marah": "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdWl3d2VoN3lvNG5nZGNqeHEzeWxnNjByZDBxdnNxYXhuM29oeWljdyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/DgwWF1r06pWZQd99zE/200.gif",
+};
+const essayQuestions = [
+  "Kalau ngebayangin masa depan, kira-kira hal apa sih yang paling pengen kamu capai atau lakuin bareng aku?",
+  "Dari semua yang udah kita jalanin sejauh ini, hal apa yang bikin kamu ngerasa nyaman dan yakin buat terus melangkah bareng?",
+  "Ke depannya kan kita pasti bakal makin sibuk sama urusan masing-masing, menurut kamu gimana cara terbaik biar hubungan kita tetap seimbang dan berjalan baik?",
+  "Apa harapan kamu ke pasangan kamu kedepan nya?"
+];
+const essayGifs = [
+  "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjAza3FmeG4ydXV1c2NldDA1dmJmbWZlcWdtZ29td2R3MzFiODQ4dSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/lGBecpB2dIMwt6ohfI/giphy.gif",
+  "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2RheWRhbzA0OHB0amFrbWZpb2I1c2cwa2FycGxlN3NoMzZldm9pMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/qFmdpUKAFZ6rMobzzu/giphy.gif",
+  "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjAza3FmeG4ydXV1c2NldDA1dmJmbWZlcWdtZ29td2R3MzFiODQ4dSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/vsz41yXxaaClh6LjXi/giphy.gif",
+  "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjAza3FmeG4ydXV1c2NldDA1dmJmbWZlcWdtZ29td2R3MzFiODQ4dSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/2ys7GXX66elGZZWvky/giphy.gif"
+];
+const shortLabels = ["Paling pengen dicapai bareng:", "Yang bikin yakin melangkah bareng:", "Cara menyeimbangkan hubungan:", "Harapan kedepannya:"];
+
+let currentStage = 'opening';
+let ratingIndex = 0; let essayIndex = 0;
+let respondentName = '';
+let ratings = new Array(feelings.length).fill(0);
+let essays = new Array(essayQuestions.length).fill('');
+let starValue = 0;
+
+function createFloatingHearts() {
+  const container = document.getElementById('floatingHearts');
+  for(let i=0; i<12; i++) {
+    const el = document.createElement('div');
+    el.className = 'floating-heart';
+    el.style.left = `${Math.random() * 100}%`;
+    el.style.top = `${-10 + Math.random() * 10}%`;
+    el.style.fontSize = `${12 + Math.random() * 16}px`;
+    el.style.opacity = 0.3 + Math.random() * 0.4;
+    el.style.animationDuration = `${4 + Math.random() * 4}s`;
+    el.style.animationDelay = `${Math.random() * 5}s`;
+    el.textContent = '💕';
+    container.appendChild(el);
+  }
+}
+
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast'; toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+document.getElementById('nameInput').addEventListener('input', (e) => {
+  respondentName = e.target.value;
+  const btn = document.getElementById('btnStart');
+  if(respondentName.trim()) { btn.className = 'btn-primary enabled'; btn.disabled = false; document.getElementById('nameError').style.display = 'none';} 
+  else { btn.className = 'btn-primary disabled'; btn.disabled = true; }
+});
+
+document.getElementById('btnStart').addEventListener('click', () => {
+  showScreen('screen-rating'); renderRatingCard();
+});
+
+function renderRatingCard() {
+  const feeling = feelings[ratingIndex];
+  const pct = Math.round(((ratingIndex + 1) / feelings.length) * 100);
+  document.getElementById('ratingLabel').textContent = `Pertanyaan ${ratingIndex + 1} dari ${feelings.length}`;
+  document.getElementById('ratingPct').textContent = `${pct}%`;
+  document.getElementById('ratingProgressFill').style.width = `${pct}%`;
+  document.getElementById('ratingFeeling').textContent = feeling;
+  document.getElementById('ratingGif').src = ratingGifs[feeling];
+  starValue = ratings[ratingIndex]; renderStars(); updateRatingButton();
+}
+
+function renderStars() {
+  const container = document.getElementById('starRating'); container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.className = `star-btn ${i <= starValue ? 'filled' : 'empty'}`;
+    btn.textContent = '⭐';
+    btn.onclick = () => { starValue = i; ratings[ratingIndex] = i; renderStars(); updateRatingButton(); };
+    container.appendChild(btn);
+  }
+}
+
+function updateRatingButton() {
+  const btn = document.getElementById('btnRatingNext');
+  if (starValue > 0) { btn.className = 'btn-primary enabled'; btn.disabled = false; } 
+  else { btn.className = 'btn-primary disabled'; btn.disabled = true; }
+}
+
+document.getElementById('btnRatingNext').addEventListener('click', () => {
+  if (ratingIndex < feelings.length - 1) { ratingIndex++; starValue = 0; renderRatingCard(); } 
+  else { showScreen('screen-essay'); renderEssayCard(); }
+});
+
+function renderEssayCard() {
+  const pct = Math.round(((essayIndex + 1) / essayQuestions.length) * 100);
+  document.getElementById('essayLabel').textContent = `Essay ${essayIndex + 1} dari ${essayQuestions.length}`;
+  document.getElementById('essayPct').textContent = `${pct}%`;
+  document.getElementById('essayProgressFill').style.width = `${pct}%`;
+  document.getElementById('essayQuestion').textContent = essayQuestions[essayIndex];
+  document.getElementById('essayGif').src = essayGifs[essayIndex];
+  document.getElementById('essayTextarea').value = essays[essayIndex];
+  document.getElementById('btnEssayNext').textContent = essayIndex === essayQuestions.length - 1 ? 'Lihat Hasilnya 💌' : 'Lanjut';
+  updateEssayButton();
+}
+
+function updateEssayButton() {
+  const btn = document.getElementById('btnEssayNext');
+  if (document.getElementById('essayTextarea').value.trim() !== '') { btn.className = 'btn-primary enabled'; btn.disabled = false; } 
+  else { btn.className = 'btn-primary disabled'; btn.disabled = true; }
+}
+
+document.getElementById('essayTextarea').addEventListener('input', updateEssayButton);
+
+document.getElementById('btnEssayNext').addEventListener('click', () => {
+  essays[essayIndex] = document.getElementById('essayTextarea').value;
+  if (essayIndex < essayQuestions.length - 1) { essayIndex++; renderEssayCard(); } 
+  else { sendToGoogleSheets(); }
+});
+
+// ===== BAGIAN BARU: MENGIRIM KE GOOGLE SHEETS =====
+function sendToGoogleSheets() {
+  const btnNext = document.getElementById('btnEssayNext');
+  btnNext.disabled = true;
+  btnNext.textContent = 'Menyimpan... ⏳';
+  showToast('Sedang mengirim jawaban...');
+
+  const entry = { respondentName: respondentName.trim(), ratings: ratings, essays: essays };
+
+  if(GOOGLE_SHEET_URL === "TARUH_URL_DARI_LANGKAH_1_DISINI") {
+    alert("Oops! Kamu belum memasukkan URL Google Script di dalam kode HTML.");
+    finishUp();
+    return;
+  }
+
+  fetch(GOOGLE_SHEET_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(entry)
+  })
+  .then(response => {
+    showToast('Berhasil dikirim! 🎉');
+    finishUp();
+  })
+  .catch(error => {
+    showToast('Gagal mengirim ke Sheets, tapi hasil tetap ditampilkan.');
+    finishUp();
+  });
+}
+
+function finishUp() {
+  showScreen('screen-result');
+  const container = document.getElementById('resultContent');
+  let html = `<h3 class="result-section-title">📊 Rating Perasaan (⭐ /5):</h3><div class="rating-grid">`;
+  feelings.forEach((f, i) => { const v = ratings[i]||0; html += `<div class="rating-item"><span class="stars">${'⭐'.repeat(v)+'☆'.repeat(5-v)}</span></div>`; });
+  feelings.forEach((f, i) => { html += `<div class="rating-item">${f}: <span class="score">${ratings[i]||0}/5</span></div>`; });
+  html += `</div><h3 class="result-section-title">💭 Jawabannya:</h3>`;
+  essays.forEach((ans, i) => { html += `<div class="essay-result"><p class="essay-result-label">${shortLabels[i]}</p><p class="essay-result-text">"${ans}"</p></div>`; });
+  container.innerHTML = html;
+}
+
+createFloatingHearts();
+</script>
+</body>
+</html>
